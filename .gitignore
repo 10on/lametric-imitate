@@ -1,0 +1,17 @@
+# PlatformIO build artifacts
+.pio/
+
+# Secrets — copy config.h.example → config.h and fill in your values
+src/config.h
+
+# Compiled firmware binaries
+*.bin
+
+# Claude Code local settings
+.claude/
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/

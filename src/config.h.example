@@ -1,0 +1,12 @@
+#pragma once
+
+#define WIFI_SSID "your_wifi_ssid"
+#define WIFI_PASS "your_wifi_password"
+
+#define MQTT_HOST "192.168.1.100"
+#define MQTT_PORT 1883
+#define MQTT_USER "mqtt"
+#define MQTT_PASS "your_mqtt_password"
+
+#define YT_API_KEY    "your_youtube_api_key"
+#define YT_CHANNEL_ID "your_youtube_channel_id"
