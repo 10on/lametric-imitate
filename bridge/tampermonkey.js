@@ -57,22 +57,53 @@
             url:     BRIDGE_URL,
             headers: { 'Content-Type': 'application/json' },
             data:    JSON.stringify({ count }),
-            onload:  (r) => updateBadge(count, r.status === 200 ? 'ok' : `err ${r.status}`),
-            onerror: ()  => updateBadge(count, 'net err'),
+            onload:  (r) => updateBadge(count, r.status === 200 ? 'ok' : 'err'),
+            onerror: ()  => updateBadge(count, 'err'),
         });
     }
 
-    // --- minimal status badge ---
+    // --- status badge ---
+    let lastOkTime   = 0;
+    let lastOkCount  = null;
+    let badgeStatus  = 'waiting'; // waiting | sending | ok | err
+
     const badge = document.createElement('div');
     Object.assign(badge.style, {
-        position: 'fixed', bottom: '12px', right: '12px', zIndex: 99999,
-        background: '#111', color: '#0f0', fontFamily: 'monospace',
-        fontSize: '11px', padding: '4px 8px', borderRadius: '4px',
-        opacity: '0.75', pointerEvents: 'none',
+        position: 'fixed', bottom: '16px', right: '16px', zIndex: 99999,
+        background: '#1a1a1a', fontFamily: 'monospace', fontSize: '12px',
+        padding: '8px 12px', borderRadius: '6px', lineHeight: '1.6',
+        border: '1px solid #333', boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+        pointerEvents: 'none', minWidth: '160px',
+        transition: 'border-color 0.3s',
     });
     document.body?.appendChild(badge);
 
-    function updateBadge(count, status) {
-        badge.textContent = `subs: ${count.toLocaleString()}  [${status}]`;
+    const COLORS = { waiting: '#666', sending: '#fa0', ok: '#0f0', err: '#f44' };
+
+    function renderBadge() {
+        const color = COLORS[badgeStatus];
+        const ago   = lastOkTime
+            ? (() => { const s = Math.round((Date.now() - lastOkTime) / 1000);
+                return s < 60 ? `${s}s ago` : `${Math.floor(s/60)}m ${s%60}s ago`; })()
+            : '—';
+        badge.style.borderColor = color;
+        badge.innerHTML =
+            `<div style="color:#888;font-size:10px">📡 YT Bridge</div>` +
+            `<div style="color:#fff;font-size:15px;font-weight:bold">${lastOkCount !== null ? lastOkCount.toLocaleString() : '—'}</div>` +
+            `<div style="color:${color}">${badgeStatus}${badgeStatus === 'ok' ? ` · ${ago}` : ''}</div>`;
     }
+
+    function updateBadge(count, status) {
+        badgeStatus = status;
+        if (status === 'ok') { lastOkTime = Date.now(); lastOkCount = count; }
+        if (status === 'sending' && count !== null) lastOkCount = count;
+        // flash
+        badge.style.opacity = '1';
+        setTimeout(() => { badge.style.opacity = '0.82'; }, 300);
+        renderBadge();
+    }
+
+    // live "ago" timer
+    setInterval(renderBadge, 5000);
+    renderBadge();
 })();
