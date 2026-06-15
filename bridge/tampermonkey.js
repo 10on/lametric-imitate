@@ -12,29 +12,29 @@
     const BRIDGE_URL    = 'http://192.168.8.150:7431/subscribers';
     const MIN_INTERVAL  = 30_000; // don't spam more often than 30s
 
-    let lastSent     = 0;
-    let lastCount    = null;
-    const origFetch  = window.fetch;
+    let lastSent  = 0;
+    let lastCount = null;
 
-    window.fetch = async function (...args) {
-        const res = await origFetch.apply(this, args);
-        const url = typeof args[0] === 'string' ? args[0] : args[0]?.url ?? '';
+    // Studio uses XHR, not fetch — intercept XMLHttpRequest
+    const origOpen = XMLHttpRequest.prototype.open;
+    const origSend = XMLHttpRequest.prototype.send;
 
-        // log all youtubei calls so we can find the right endpoint
-        if (url.includes('youtubei/')) {
-            const short = url.replace(/.*youtubei\/v1\//, '').split('?')[0];
-            console.log(`[YTBridge] fetch: ${short} → ${res.status}`);
-        }
+    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+        this._ytbUrl = url;
+        return origOpen.call(this, method, url, ...rest);
+    };
 
+    XMLHttpRequest.prototype.send = function (body) {
+        const url = this._ytbUrl ?? '';
         if (url.includes('youtubei/v1/yta_web/join')) {
-            console.log('[YTBridge] caught yta_web/join, parsing...');
-            res.clone().json().then(data => {
-                const count = extractCount(data);
-                console.log('[YTBridge] extracted count:', count);
-                if (count !== null) maybePublish(count);
-            }).catch(e => console.warn('[YTBridge] parse error:', e));
+            this.addEventListener('load', function () {
+                try {
+                    const count = extractCount(JSON.parse(this.responseText));
+                    if (count !== null) maybePublish(count);
+                } catch {}
+            });
         }
-        return res;
+        return origSend.call(this, body);
     };
 
     function extractCount(data) {
