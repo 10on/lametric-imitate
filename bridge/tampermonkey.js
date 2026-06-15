@@ -20,9 +20,8 @@
         const res = await origFetch.apply(this, args);
         const url = typeof args[0] === 'string' ? args[0] : args[0]?.url ?? '';
 
-        // YouTube Studio internal API that returns channel stats
-        if (url.includes('youtubei/v1/creator/get_creator_channels') ||
-            url.includes('youtubei/v1/yta/get_endpoint')) {
+        // yta_web/join: the analytics card request that includes cumulativeSubscribersCardConfig
+        if (url.includes('youtubei/v1/yta_web/join')) {
             res.clone().json().then(data => {
                 const count = extractCount(data);
                 if (count !== null) maybePublish(count);
@@ -32,10 +31,16 @@
     };
 
     function extractCount(data) {
-        // Walk the response tree looking for subscriber count
-        const str = JSON.stringify(data);
-        const m = str.match(/"subscriberCount"\s*:\s*"?(\d+)"?/);
-        return m ? parseInt(m[1], 10) : null;
+        try {
+            for (const result of data.results ?? []) {
+                const cards = result?.value?.getCards?.cards ?? [];
+                for (const card of cards) {
+                    const total = card?.cumulativeSubscribersCardData?.lifetimeTotal;
+                    if (typeof total === 'number') return total;
+                }
+            }
+        } catch {}
+        return null;
     }
 
     function maybePublish(count) {
