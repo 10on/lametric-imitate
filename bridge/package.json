@@ -1,0 +1,11 @@
+{
+  "name": "yt-subscriber-bridge",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1"
+  }
+}
